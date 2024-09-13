@@ -136,8 +136,9 @@ class Sketch(CanvasBase):
         elif len(self.points_l) % 2 == 0 and len(self.points_l) > 0:
             if self.debug > 0:
                 print("draw a line from ", self.points_l[-1], " -> ", self.points_l[-2])
-            self.drawRectangle(self.buff, self.points_l[-2], self.points_l[-1])
+            # self.drawRectangle(self.buff, self.points_l[-2], self.points_l[-1])
             # self.drawPoint(self.buff, self.points_l[-1])
+            self.drawLine(self.buff, self.points_l[-2], self.points_l[-1], self.doSmooth)
             self.points_l.clear()
 
     # Deal with Mouse Right Button Pressed Interruption
@@ -244,7 +245,7 @@ class Sketch(CanvasBase):
         buff.buff[x, y, 1] = c.g * 255
         buff.buff[x, y, 2] = c.b * 255
 
-    def drawLine(self, buff, p1, p2, doSmooth=True, doAA=False, doAAlevel=4):
+    def drawLine(self, buff, p1, p2, doSmooth, doAA=False, doAAlevel=4):
         """
         Draw a line between p1 and p2 on buff
 
@@ -266,6 +267,87 @@ class Sketch(CanvasBase):
         # Requirements:
         #   1. Only integer is allowed in interpolate point coordinates between p1 and p2
         #   2. Float number is allowed in interpolate point color
+        
+        # get coordinates of p1 and p2
+        x1, y1 = p1.coords
+        x2, y2 = p2.coords
+
+        # get colors of p1 and p2
+        r1, g1, b1 = p1.color
+        r2, g2, b2 = p2.color
+        
+        # compute the slope
+        deltaX = abs(x2 - x1)
+        deltaY = abs(y2 - y1)
+
+        # compute which way slope goes
+        if x1 < x2:
+            dX = 1
+        else:
+            dX = -1
+        
+        if y1 < y2:
+            dY = 1
+        else:
+            dY = -1
+
+        # check if we do slope <= 1 or slope > 1
+        lowSlope = deltaY <= deltaX
+        if lowSlope:
+            # precompute variables
+            highD = 2 * deltaY - 2 * deltaX
+            lowD = 2 * deltaY
+
+            # base case
+            D = 2 * deltaY - deltaX
+
+            # set starting variables
+            y = y1
+            counter = 0     # for color interpolation
+            for x in range(x1, x2 + dX, dX):
+                if doSmooth:
+                    # linear interpolation
+                    t = counter / deltaX
+                    r = (1-t) * r1 + t * r2
+                    g = (1-t) * g1 + t * g2
+                    b = (1-t) * b1 + t * b2
+                    self.drawPoint(buff, Point((x, y), [r, g, b]))
+                    counter += 1
+                else:
+                    self.drawPoint(buff, Point((x, y), p1.color))
+                if D >= 0:
+                    y += dY
+                    D += highD
+                else:
+                    D += lowD
+        # high slope
+        else:   
+            # precompute variables
+            highD = 2 * deltaX - 2 * deltaY
+            lowD = 2 * deltaX
+
+            # base case
+            D = 2 * deltaX - deltaY
+
+            # set starting vars
+            x = x1
+            counter = 0
+            for y in range(y1, y2 + dY, dY):
+                if doSmooth:
+                    # linear interpolation
+                    t = counter / deltaY
+                    r = (1-t) * r1 + t * r2
+                    g = (1-t) * g1 + t * g2
+                    b = (1-t) * b1 + t * b2
+                    self.drawPoint(buff, Point((x, y), [r, g, b]))
+                    counter += 1
+                else:
+                    self.drawPoint(buff, Point((x, y), p1.color))
+                if D >= 0:
+                    x += dX
+                    D += highD
+                else:
+                    D += lowD
         return
 
     def drawTriangle(self, buff, p1, p2, p3, doSmooth=True, doAA=False, doAAlevel=4, doTexture=False):
