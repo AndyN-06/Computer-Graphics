@@ -273,8 +273,8 @@ class Sketch(CanvasBase):
         x2, y2 = p2.coords
 
         # get colors of p1 and p2
-        r1, g1, b1 = p1.color
-        r2, g2, b2 = p2.color
+        r1, g1, b1 = p1.color.getRGB()
+        r2, g2, b2 = p2.color.getRGB()
         
         # compute the slope
         deltaX = abs(x2 - x1)
@@ -311,7 +311,7 @@ class Sketch(CanvasBase):
                     r = (1-t) * r1 + t * r2
                     g = (1-t) * g1 + t * g2
                     b = (1-t) * b1 + t * b2
-                    self.drawPoint(buff, Point((x, y), [r, g, b]))
+                    self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
                     counter += 1
                 else:
                     self.drawPoint(buff, Point((x, y), p1.color))
@@ -339,7 +339,7 @@ class Sketch(CanvasBase):
                     r = (1-t) * r1 + t * r2
                     g = (1-t) * g1 + t * g2
                     b = (1-t) * b1 + t * b2
-                    self.drawPoint(buff, Point((x, y), [r, g, b]))
+                    self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
                     counter += 1
                 else:
                     self.drawPoint(buff, Point((x, y), p1.color))
