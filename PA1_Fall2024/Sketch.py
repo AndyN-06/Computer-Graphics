@@ -155,7 +155,8 @@ class Sketch(CanvasBase):
         elif len(self.points_r) % 3 == 0 and len(self.points_r) > 0:
             if self.debug > 0:
                 print("draw a triangle {} -> {} -> {}".format(self.points_r[-3], self.points_r[-2], self.points_r[-1]))
-            self.drawPoint(self.buff, self.points_r[-1])
+            # self.drawPoint(self.buff, self.points_r[-1])
+            self.drawTriangle(self.buff, self.points_r[-3], self.points_r[-2], self.points_r[-1], self.doSmooth)
             self.points_r.clear()
 
     def Interrupt_Keyboard(self, keycode):
@@ -245,7 +246,7 @@ class Sketch(CanvasBase):
         buff.buff[x, y, 1] = c.g * 255
         buff.buff[x, y, 2] = c.b * 255
 
-    def drawLine(self, buff, p1, p2, doSmooth, doAA=False, doAAlevel=4):
+    def drawLine(self, buff, p1, p2, doSmooth=True, doAA=False, doAAlevel=4):
         """
         Draw a line between p1 and p2 on buff
 
@@ -291,7 +292,7 @@ class Sketch(CanvasBase):
         else:
             dY = -1
 
-        # check if we do slope <= 1 or slope > 1
+        # check if we do abs(slope) <= 1 or abs(slope) > 1
         lowSlope = deltaY <= deltaX
         if lowSlope:
             # precompute variables
@@ -320,7 +321,7 @@ class Sketch(CanvasBase):
                     D += highD
                 else:
                     D += lowD
-        # high slope
+        # high slope means switching x and y
         else:   
             # precompute variables
             highD = 2 * deltaX - 2 * deltaY
@@ -380,6 +381,167 @@ class Sketch(CanvasBase):
         #   2. Polygon scan fill algorithm and the use of barycentric coordinate are not allowed in this function
         #   3. You should be able to support both flat shading and smooth shading, which is controlled by doSmooth
         #   4. For texture-mapped fill of triangles, it should be controlled by doTexture flag.
+
+        # sort points from top to bottom
+        p1, p2, p3 = sorted([p1, p2, p3], key=lambda p: p.coords[1])
+
+        # get coordinates
+        x1, y1 = p1.coords
+        x2, y2 = p2.coords
+        x3, y3 = p3.coords
+
+        # flat bottom triangle
+        if round(y2) == round(y3):
+            self.fillFlatBottom(buff, p1, p2, p3, doSmooth)
+        
+        # flat top triangle
+        elif round(y1) == round(y2):
+            self.fillFlatTop(buff, p1, p2, p3, doSmooth)
+        
+        # general triangle
+        else:
+            # split triangle at p2 and create a new vertex for two triangles
+            xNew = (y2 - y1) / (y3 - y1) * (x3 - x1) + x1
+            p4 = Point([xNew, y2], p1.color, None)
+
+            # fill top as flat bottom and bottom as flat top
+            self.fillFlatBottom(buff, p1, p2, p4, doSmooth)
+            self.fillFlatTop(buff, p2, p4, p3, doSmooth)
+
+        return
+
+    # function for a flat bottom triangle
+    def fillFlatBottom(self, buff, p1, p2, p3, doSmooth):
+        # p1 is top of triangle
+        # p2 & p3 are bottom
+        # get coordinates
+        x1, y1 = p1.coords
+        x2, y2 = p2.coords
+        x3, y3 = p3.coords
+
+        # colors
+        r1, g1, b1 = p1.color.getRGB()
+        r2, g2, b2 = p2.color.getRGB()
+        r3, g3, b3 = p3.color.getRGB()
+
+        # set beginning vars to follow sides of triangle
+        currX1 = round(x1)
+        currX2 = round(x1)
+
+        # find x slope since y is always changing by 1
+        # for linear interpolation of x coordinate
+        slope1 = (x2 - x1) / (y2 - y1)
+        slope2 = (x3 - x1) / (y3 - y1)
+
+        # loop through entire y of triangle
+        for y in range (round(y1), round(y2) + 1):
+            # calculate t for interpolation in y direction
+            t1 = (y - y1) / (y2 - y1)
+            t2 = (y - y1) / (y3 - y1)
+
+            # linear interpolate color along triangle edge
+            if doSmooth:
+                rl = (1 - t1) * r1 + t1 * r2
+                gl = (1 - t1) * g1 + t1 * g2
+                bl = (1 - t1) * b1 + t2 * b3
+
+                rr = (1 - t2) * r2 + t2 * r3
+                gr = (1 - t2) * g2 + t2 * g3
+                br = (1 - t2) * b2 + t2 * b3
+            else:
+                rl, gl, bl = r1, g1, b1
+                rr, gr, br = r2, g2, b2
+                
+            # filling from left to right
+            beg = min(currX1, currX2)
+            end = max(currX1, currX2)
+
+            # fill from one side to the other
+            for x in range (round(beg), round(end) + 1):
+                if doSmooth and beg != end:
+                    # calculate t for interpolation in x direction
+                    t = (x - beg) / (end - beg)
+
+                    # calculate colors based on t
+                    r = (1 - t) * rl + t * rr
+                    g = (1 - t) * gl + t * gr
+                    b = (1 - t) * bl + t * br
+                    self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
+                else:
+                    # draw with color of point 1
+                    self.drawPoint(buff, Point((x, y), p1.color))
+
+            # linearly interpolate next x coordinate based on slope    
+            currX1 += slope1
+            currX2 += slope2
+        
+        return
+
+    # function for a flat top triangle
+    def fillFlatTop(self, buff, p1, p2, p3, doSmooth):
+        # p1 & p2 are top of triangle
+        # p3 is bottom
+        # get coordinates
+        x1, y1 = p1.coords
+        x2, y2 = p2.coords
+        x3, y3 = p3.coords
+
+        # colors
+        r1, g1, b1 = p1.color.getRGB()
+        r2, g2, b2 = p2.color.getRGB()
+        r3, g3, b3 = p3.color.getRGB()
+
+        # set beginning vars to follow sides of triangle
+        currX1 = round(x1)
+        currX2 = round(x2)
+
+        # find x slope since y is always changing by 1
+        # for linear interpolation of x coordinate
+        slope1 = (x3 - x1) / (y3 - y1)
+        slope2 = (x3 - x2) / (y3 - y2)
+
+        # loop through entire y of triangle
+        for y in range (round(y1), round(y3) + 1):
+            # calculate t for interpolation in y direction
+            t1 = (y - y1) / (y3 - y1)
+            t2 = (y - y2) / (y3 - y2)
+
+            # linear interpolate color along triangle edge
+            if doSmooth:
+                rl = (1 - t1) * r1 + t1 * r2
+                gl = (1 - t1) * g1 + t1 * g2
+                bl = (1 - t1) * b1 + t2 * b3
+
+                rr = (1 - t2) * r2 + t2 * r3
+                gr = (1 - t2) * g2 + t2 * g3
+                br = (1 - t2) * b2 + t2 * b3
+            else:
+                rl, gl, bl = r1, g1, b1
+                rr, gr, br = r2, g2, b2
+
+            # filling from left to right
+            beg = min(currX1, currX2)
+            end = max(currX1, currX2)
+            
+            # fill from one side to the other
+            for x in range (round(beg), round(end) + 1):
+                if doSmooth and beg != end:
+                    # calculate t for interpolation in x direction
+                    t = (x - beg) / (end - beg)
+
+                    # calculate colors based on t
+                    r = (1 - t) * rl + t * rr
+                    g = (1 - t) * gl + t * gr
+                    b = (1 - t) * bl + t * br
+                    self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
+                else:
+                    # draw with color of point 1
+                    self.drawPoint(buff, Point((x, y), p1.color))
+
+            # linearly interpolate next x coordinate based on slope
+            currX1 += slope1
+            currX2 += slope2
+        
         return
 
     def drawRectangle(self, buff, p1, p2, doSmooth=True, doAA=False, doAAlevel=4):
