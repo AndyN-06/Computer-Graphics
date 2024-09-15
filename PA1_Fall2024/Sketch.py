@@ -6,6 +6,10 @@ First version Created on 09/28/2018
 :author: micou(Zezhou Sun)
 :version: 2021.2.1
 
+Edited by Andrew Nguyen U10666001
+I filled in the drawLine and drawTriangle functions. I added two new functions for filling a flat bottom triangle
+and a flat top triangle
+
 """
 
 import os
@@ -315,12 +319,15 @@ class Sketch(CanvasBase):
                     self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
                     counter += 1
                 else:
+                    # flat fill
                     self.drawPoint(buff, Point((x, y), p1.color))
+                # update our Dk value
                 if D >= 0:
                     y += dY
                     D += highD
                 else:
                     D += lowD
+        
         # high slope means switching x and y
         else:   
             # precompute variables
@@ -382,6 +389,9 @@ class Sketch(CanvasBase):
         #   3. You should be able to support both flat shading and smooth shading, which is controlled by doSmooth
         #   4. For texture-mapped fill of triangles, it should be controlled by doTexture flag.
 
+        # get color of first point for flat fill
+        flatColor = p1.color
+
         # sort points from top to bottom
         p1, p2, p3 = sorted([p1, p2, p3], key=lambda p: p.coords[1])
 
@@ -392,28 +402,41 @@ class Sketch(CanvasBase):
 
         # flat bottom triangle
         if round(y2) == round(y3):
-            self.fillFlatBottom(buff, p1, p2, p3, doSmooth)
+            self.fillFlatBottom(buff, p1, p2, p3, doSmooth, flatColor)
         
         # flat top triangle
         elif round(y1) == round(y2):
-            self.fillFlatTop(buff, p1, p2, p3, doSmooth)
+            self.fillFlatTop(buff, p1, p2, p3, doSmooth, flatColor)
         
         # general triangle
         else:
             # split triangle at p2 and create a new vertex for two triangles
             xNew = (y2 - y1) / (y3 - y1) * (x3 - x1) + x1
-            p4 = Point([xNew, y2], p1.color, None)
+            
+            # calculate color of new point
+            r1, g1, b1 = p1.color.getRGB()
+            r3, g3, b3 = p3.color.getRGB()
+            t = (y2 - y1) / (y3 - y1)
+            rNew = (1 - t) * r1 + t * r3
+            gNew = (1 - t) * g1 + t * g3
+            bNew = (1 - t) * b1 + t * b3
+            
+            p4 = Point([xNew, y2], ColorType(rNew, gNew, bNew), None)
 
             # fill top as flat bottom and bottom as flat top
-            self.fillFlatBottom(buff, p1, p2, p4, doSmooth)
-            self.fillFlatTop(buff, p2, p4, p3, doSmooth)
+            self.fillFlatBottom(buff, p1, p2, p4, doSmooth, flatColor)
+            self.fillFlatTop(buff, p2, p4, p3, doSmooth, flatColor)
 
         return
 
     # function for a flat bottom triangle
-    def fillFlatBottom(self, buff, p1, p2, p3, doSmooth):
+    def fillFlatBottom(self, buff, p1, p2, p3, doSmooth, color):
         # p1 is top of triangle
-        # p2 & p3 are bottom
+        # p2 is bottom left
+        # p3 is bottom right
+        if p2.coords[0] > p3.coords[0]:
+            p2, p3 = p3, p2
+
         # get coordinates
         x1, y1 = p1.coords
         x2, y2 = p2.coords
@@ -443,11 +466,11 @@ class Sketch(CanvasBase):
             if doSmooth:
                 rl = (1 - t1) * r1 + t1 * r2
                 gl = (1 - t1) * g1 + t1 * g2
-                bl = (1 - t1) * b1 + t2 * b3
+                bl = (1 - t1) * b1 + t2 * b2
 
-                rr = (1 - t2) * r2 + t2 * r3
-                gr = (1 - t2) * g2 + t2 * g3
-                br = (1 - t2) * b2 + t2 * b3
+                rr = (1 - t2) * r1 + t2 * r3
+                gr = (1 - t2) * g1 + t2 * g3
+                br = (1 - t2) * b1 + t2 * b3
             else:
                 rl, gl, bl = r1, g1, b1
                 rr, gr, br = r2, g2, b2
@@ -461,6 +484,7 @@ class Sketch(CanvasBase):
                 if doSmooth and beg != end:
                     # calculate t for interpolation in x direction
                     t = (x - beg) / (end - beg)
+                    t = max(0, min(t, 1))
 
                     # calculate colors based on t
                     r = (1 - t) * rl + t * rr
@@ -469,7 +493,7 @@ class Sketch(CanvasBase):
                     self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
                 else:
                     # draw with color of point 1
-                    self.drawPoint(buff, Point((x, y), p1.color))
+                    self.drawPoint(buff, Point((x, y), color))
 
             # linearly interpolate next x coordinate based on slope    
             currX1 += slope1
@@ -478,9 +502,13 @@ class Sketch(CanvasBase):
         return
 
     # function for a flat top triangle
-    def fillFlatTop(self, buff, p1, p2, p3, doSmooth):
-        # p1 & p2 are top of triangle
+    def fillFlatTop(self, buff, p1, p2, p3, doSmooth, color):
+        # p1 is top left
+        # p2 is top right
         # p3 is bottom
+        if p1.coords[0] > p2.coords[0]:
+            p1, p2 = p2, p1
+
         # get coordinates
         x1, y1 = p1.coords
         x2, y2 = p2.coords
@@ -508,8 +536,8 @@ class Sketch(CanvasBase):
 
             # linear interpolate color along triangle edge
             if doSmooth:
-                rl = (1 - t1) * r1 + t1 * r2
-                gl = (1 - t1) * g1 + t1 * g2
+                rl = (1 - t1) * r1 + t1 * r3
+                gl = (1 - t1) * g1 + t1 * g3
                 bl = (1 - t1) * b1 + t2 * b3
 
                 rr = (1 - t2) * r2 + t2 * r3
@@ -528,6 +556,7 @@ class Sketch(CanvasBase):
                 if doSmooth and beg != end:
                     # calculate t for interpolation in x direction
                     t = (x - beg) / (end - beg)
+                    t = max(0, min(t, 1))
 
                     # calculate colors based on t
                     r = (1 - t) * rl + t * rr
@@ -536,7 +565,7 @@ class Sketch(CanvasBase):
                     self.drawPoint(buff, Point((x, y), ColorType(r, g, b)))
                 else:
                     # draw with color of point 1
-                    self.drawPoint(buff, Point((x, y), p1.color))
+                    self.drawPoint(buff, Point((x, y), color))
 
             # linearly interpolate next x coordinate based on slope
             currX1 += slope1
