@@ -1,0 +1,7 @@
+Andrew Nguyen
+CAS CS 480
+PA1
+
+1. For the line drawing using Bresenham's algorithm, I first collected the information about the two endpoints, namely their coordinates and RGB values. I then determine the slope and its direction without floating point by getting deltaX and deltaY. Bresenham's algorithm changes based on whether the slope is > or < 1 where we take increments in x direction if low slope and increments in y direction if high slope. In both of these cases, we precompute values and the base case. We use a counter for color interpolation to help us find t and interpolate the RGB values. We draw points and decide to move up a step or not based on the D value we calculate until we reach the end point
+
+2. I split the drawTriangle function into two helper functions for drawing a flat bottom or flat top triangle. The main function sorts the points from highest to lowest in terms of y coordinate and then splits a general triangle into a flat bottom and flat top. The new point is at the same y position as the second highest point and we use linear interpolation to find the x coordinate and its color value. The two helper functions basically follow the same process as each other. They order their vertices. Get the slopes of their sides. From top to bottom they interpolate the color in y direction, Then at each y pixel level, fill the triangle from left to right while interpolating color in the x direction. It then calculates the new x value of the side of the triangle through the slope we calculated earlier.
