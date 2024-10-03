@@ -13,8 +13,7 @@ Modified by Daniel Scrivener 09/2023
 from Component import Component
 from Point import Point
 import ColorType as Ct
-from Shapes import Cube
-from Shapes import Cylinder
+from Shapes import Cube, Cylinder, Cone, Sphere
 import numpy as np
 
 
@@ -37,7 +36,6 @@ class ModelLinkage(Component):
     # otherwise, rotations may not behave as expected.
     #
     # Please see Blackboard for an illustration of how this behavior works.
-
     components = None
     contextParent = None
 
@@ -45,24 +43,46 @@ class ModelLinkage(Component):
         super().__init__(position, display_obj)
         self.contextParent = parent
 
-        linkageLength = 0.5
-        link1 = Cube(Point((0, 0, 0)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE1)
-        link2 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE2)
-        link3 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE3)
-        link4 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE4)
+        body = Cylinder(Point((0, 0, 0)), shaderProg, [0.2, 0.2, .8], Ct.PURPLE)
+        head = Sphere(Point((0, 0, .8)), shaderProg, [.3, .3, .3], Ct.BLUE)
+        
+        nose1 = Cylinder(Point((0, 0, .45)), shaderProg, [.05, .05, .2], Ct.PINK)
+        nose2 = Cylinder(Point((0, 0, .4)), shaderProg, [.05, .05, .2], Ct.RED)
+        nose2.rotate(30, self.uAxis)
 
-        self.addChild(link1)
-        link1.addChild(link2)
-        link2.addChild(link3)
-        link3.addChild(link4)
+        leftEye1 = Cube(Point((.1)))
 
-        self.componentList = [link1, link2, link3, link4]
+        self.addChild(body)
+        body.addChild(head)
+        head.addChild(nose1)
+        nose1.addChild(nose2)
+
+        self.componentList = [body, head, nose1, nose2]
         self.componentDict = {
-            "link1": link1,
-            "link2": link2,
-            "link3": link3,
-            "link4": link4
+            "body": body,
+            "head": head,
+            "nose1": nose1,
+            "nose2": nose2
         }
+
+        # linkageLength = 0.5
+        # link1 = Cube(Point((0, 0, 0)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE1)
+        # link2 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE2)
+        # link3 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE3)
+        # link4 = Cube(Point((0, 0, linkageLength)), shaderProg, [0.2, 0.2, linkageLength], Ct.DARKORANGE4)
+
+        # self.addChild(link1)
+        # link1.addChild(link2)
+        # link2.addChild(link3)
+        # link3.addChild(link4)
+
+        # self.componentList = [link1, link2, link3, link4]
+        # self.componentDict = {
+        #     "link1": link1,
+        #     "link2": link2,
+        #     "link3": link3,
+        #     "link4": link4
+        # }
 
         ##### TODO 4: Define creature's joint behavior
         # Requirements:

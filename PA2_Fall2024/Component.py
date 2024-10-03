@@ -222,7 +222,8 @@ class Component:
         # e.g. self.transformationMat = C @ B @ A 
 
         # Change only this line!
-        myTransformation = np.identity(4)
+        # scaling first, then rotations in euler order, and then translate it
+        myTransformation = translationMat @ rotationMatW @ rotationMatV @ rotationMatU @ scalingMat
 
         self.transformationMat = parentTransformationMat @ self.postRotationMat @ myTransformation @ self.preRotationMat 
 
