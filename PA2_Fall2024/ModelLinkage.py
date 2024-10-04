@@ -43,26 +43,86 @@ class ModelLinkage(Component):
         super().__init__(position, display_obj)
         self.contextParent = parent
 
-        body = Cylinder(Point((0, 0, 0)), shaderProg, [0.2, 0.2, .8], Ct.PURPLE)
-        head = Sphere(Point((0, 0, .8)), shaderProg, [.3, .3, .3], Ct.BLUE)
+        body = Cylinder(Point((0, 0, 0)), shaderProg, [0.3, 0.3, 1], Ct.GREENYELLOW)
+        head = Sphere(Point((0, 0, 1.25)), shaderProg, [.5, .5, .5], Ct.GREEN)
         
-        nose1 = Cylinder(Point((0, 0, .45)), shaderProg, [.05, .05, .2], Ct.PINK)
+        nose1 = Cylinder(Point((0, .1, .5)), shaderProg, [.05, .05, .2], Ct.PINK)
         nose2 = Cylinder(Point((0, 0, .4)), shaderProg, [.05, .05, .2], Ct.RED)
         nose2.rotate(30, self.uAxis)
 
-        leftEye1 = Cube(Point((.1)))
+        leftEye = Sphere(Point((-.25, .3, .3)), shaderProg, [.03, .05, .02], Ct.BLACK)
+        righttEye = Sphere(Point((.25, .3, .3)), shaderProg, [.03, .05, .02], Ct.BLACK)
+        mouth = Cylinder(Point((0, -.15, .45)), shaderProg, [.1, .1, .05], Ct.BLACK)
+        mouth.rotate(30, self.uAxis)
+
+        leftAnt1 = Cube(Point((-.2, .6, 0.1)), shaderProg, [.05, .05, .3], Ct.BLACK)
+        leftAnt2 = Cube(Point((0, 0, -.3)), shaderProg, [.05, .05, .3], Ct.PURPLE)
+        leftAnt1.rotate(90, self.uAxis)
+
+        rightAnt1 = Cube(Point((.2, .6, 0.1)), shaderProg, [.05, .05, .3], Ct.BLACK)
+        righttAnt2 = Cube(Point((0, 0, -.3)), shaderProg, [.05, .05, .3], Ct.PURPLE)
+        rightAnt1.rotate(90, self.uAxis)
+
+        leftLeg1 = Cube(Point((-.2, -.2, .25)), shaderProg, [.2, .2, .3], Ct.CYAN)
+        leftLeg2 = Cube(Point((0, 0, .3)), shaderProg, [.2, .2, .3], Ct.SILVER)
+        leftLeg1.rotate(80, self.uAxis)
+        leftLeg1.rotate(-20, self.wAxis)
+
+        rightLeg1 = Cube(Point((.2, -.2, .25)), shaderProg, [.2, .2, .3], Ct.CYAN)
+        rightLeg2 = Cube(Point((0, 0, .3)), shaderProg, [.2, .2, .3], Ct.SILVER)
+        rightLeg1.rotate(80, self.uAxis)
+        rightLeg1.rotate(20, self.wAxis)
+
+        tail1 = Cylinder(Point((0, 0, -.66)), shaderProg, [.3, .3, .3], Ct.RED)
+        tail2 = Cylinder(Point((0, 0, .5)), shaderProg, [.2, .2, .3], Ct.DARKORANGE2)
+        tail3 = Cylinder(Point((0, 0, .5)), shaderProg, [.1, .1, .3], Ct.DARKORANGE4)
+        tailEnd = Cone(Point((0, 0, .4)), shaderProg, [.1, .1, .1], Ct.DARKORANGE3)
+        tail1.rotate(180, self.vAxis)
+        tail1.rotate(-30, self.uAxis)
+        tail2.rotate(-30, self.uAxis)
+        tail3.rotate(-30, self.uAxis)
 
         self.addChild(body)
         body.addChild(head)
         head.addChild(nose1)
         nose1.addChild(nose2)
+        head.addChild(leftEye)
+        head.addChild(righttEye)
+        head.addChild(mouth)
+        head.addChild(leftAnt1)
+        leftAnt1.addChild(leftAnt2)
+        head.addChild(rightAnt1)
+        rightAnt1.addChild(righttAnt2)
+        body.addChild(leftLeg1)
+        leftLeg1.addChild(leftLeg2)
+        body.addChild(rightLeg1)
+        rightLeg1.addChild(rightLeg2)
+        body.addChild(tail1)
+        tail1.addChild(tail2)
+        tail2.addChild(tail3)
+        tail3.addChild(tailEnd)
 
-        self.componentList = [body, head, nose1, nose2]
+        self.componentList = [body, head, nose1, nose2, leftEye, righttEye, mouth, leftAnt1, leftAnt2, rightAnt1, righttAnt2, leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3, tailEnd]
         self.componentDict = {
             "body": body,
             "head": head,
             "nose1": nose1,
-            "nose2": nose2
+            "nose2": nose2,
+            "leftEye": leftEye,
+            "rightEye": righttEye,
+            "mouth": mouth,
+            "leftAnt1": leftAnt1,
+            "leftAnt2": leftAnt2,
+            "rightAnt1": rightAnt1,
+            "rightAnt2": righttAnt2,
+            "rightLeg1": rightLeg1,
+            "rightLeg2": rightLeg2,
+            "leftLeg1": leftLeg1,
+            "leftLeg2": leftLeg2,
+            "tail1": tail1,
+            "tail2": tail2,
+            "tail3": tail3,
+            "tailEnd": tailEnd
         }
 
         # linkageLength = 0.5
