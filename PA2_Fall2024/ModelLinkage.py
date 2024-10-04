@@ -77,39 +77,39 @@ class creature(Component):
         
         nose1 = Cylinder(Point((0, .1, .5)), shaderProg, [.05, .05, .2], Ct.PINK)
         nose2 = Cylinder(Point((0, 0, .4)), shaderProg, [.05, .05, .2], Ct.RED)
-        nose2.rotate(30, self.uAxis)
+        nose2.setDefaultAngle(30, self.uAxis)
 
         leftEye = Sphere(Point((-.25, .3, .3)), shaderProg, [.03, .05, .02], Ct.BLACK)
         righttEye = Sphere(Point((.25, .3, .3)), shaderProg, [.03, .05, .02], Ct.BLACK)
         mouth = Cylinder(Point((0, -.15, .45)), shaderProg, [.1, .1, .05], Ct.BLACK)
-        mouth.rotate(30, self.uAxis)
+        mouth.setDefaultAngle(30, self.uAxis)
 
         leftAnt1 = Cube(Point((-.2, .6, 0.1)), shaderProg, [.05, .05, .3], Ct.BLACK)
         leftAnt2 = Cube(Point((0, 0, -.3)), shaderProg, [.05, .05, .3], Ct.PURPLE)
-        leftAnt1.rotate(90, self.uAxis)
+        leftAnt1.setDefaultAngle(70, self.uAxis)
 
         rightAnt1 = Cube(Point((.2, .6, 0.1)), shaderProg, [.05, .05, .3], Ct.BLACK)
-        righttAnt2 = Cube(Point((0, 0, -.3)), shaderProg, [.05, .05, .3], Ct.PURPLE)
-        rightAnt1.rotate(90, self.uAxis)
+        rightAnt2 = Cube(Point((0, 0, -.3)), shaderProg, [.05, .05, .3], Ct.PURPLE)
+        rightAnt1.setDefaultAngle(70, self.uAxis)
 
         leftLeg1 = Cube(Point((-.2, -.2, .25)), shaderProg, [.2, .2, .3], Ct.CYAN)
         leftLeg2 = Cube(Point((0, 0, .3)), shaderProg, [.2, .2, .3], Ct.SILVER)
-        leftLeg1.rotate(80, self.uAxis)
-        leftLeg1.rotate(-20, self.wAxis)
+        leftLeg1.setDefaultAngle(80, self.uAxis)
+        leftLeg1.setDefaultAngle(-20, self.wAxis)
 
         rightLeg1 = Cube(Point((.2, -.2, .25)), shaderProg, [.2, .2, .3], Ct.CYAN)
         rightLeg2 = Cube(Point((0, 0, .3)), shaderProg, [.2, .2, .3], Ct.SILVER)
-        rightLeg1.rotate(80, self.uAxis)
-        rightLeg1.rotate(20, self.wAxis)
+        rightLeg1.setDefaultAngle(80, self.uAxis)
+        rightLeg1.setDefaultAngle(20, self.wAxis)
 
         tail1 = Cylinder(Point((0, 0, -.66)), shaderProg, [.3, .3, .3], Ct.RED)
         tail2 = Cylinder(Point((0, 0, .5)), shaderProg, [.2, .2, .3], Ct.DARKORANGE2)
         tail3 = Cylinder(Point((0, 0, .5)), shaderProg, [.1, .1, .3], Ct.DARKORANGE4)
         tailEnd = Cone(Point((0, 0, .4)), shaderProg, [.1, .1, .1], Ct.DARKORANGE3)
-        tail1.rotate(180, self.vAxis)
-        tail1.rotate(-30, self.uAxis)
-        tail2.rotate(-30, self.uAxis)
-        tail3.rotate(-30, self.uAxis)
+        tail1.setDefaultAngle(180, self.vAxis)
+        tail1.setDefaultAngle(-30, self.uAxis)
+        tail2.setDefaultAngle(-30, self.uAxis)
+        tail3.setDefaultAngle(-30, self.uAxis)
 
         self.addChild(body)
         body.addChild(head)
@@ -121,7 +121,7 @@ class creature(Component):
         head.addChild(leftAnt1)
         leftAnt1.addChild(leftAnt2)
         head.addChild(rightAnt1)
-        rightAnt1.addChild(righttAnt2)
+        rightAnt1.addChild(rightAnt2)
         body.addChild(leftLeg1)
         leftLeg1.addChild(leftLeg2)
         body.addChild(rightLeg1)
@@ -131,7 +131,7 @@ class creature(Component):
         tail2.addChild(tail3)
         tail3.addChild(tailEnd)
 
-        self.componentList = [body, head, nose1, nose2, leftEye, righttEye, mouth, leftAnt1, leftAnt2, rightAnt1, righttAnt2, leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3, tailEnd]
+        self.componentList = [body, head, nose1, nose2, leftEye, righttEye, mouth, leftAnt1, leftAnt2, rightAnt1, rightAnt2, leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3, tailEnd]
         self.componentDict = {
             "body": body,
             "head": head,
@@ -143,7 +143,7 @@ class creature(Component):
             "leftAnt1": leftAnt1,
             "leftAnt2": leftAnt2,
             "rightAnt1": rightAnt1,
-            "rightAnt2": righttAnt2,
+            "rightAnt2": rightAnt2,
             "rightLeg1": rightLeg1,
             "rightLeg2": rightLeg2,
             "leftLeg1": leftLeg1,
@@ -160,3 +160,84 @@ class creature(Component):
         #   1. Set a reasonable rotation range for each joint,
         #      so that creature won't intersect itself or bend in unnatural ways
         #   2. Orientation of joint rotations for the left and right parts should mirror each other.
+
+        # main body rotation extents 
+        body.setRotateExtent(self.uAxis, -90, 90)
+        body.setRotateExtent(self.vAxis, -90, 90)
+        body.setRotateExtent(self.wAxis, -90, 90)
+
+        # head rotation extents
+        head.setRotateExtent(self.uAxis, -45, 45)
+        head.setRotateExtent(self.vAxis, -45, 45)
+        head.setRotateExtent(self.wAxis, -45, 45)
+
+        # nose1 rotation
+        nose1.setRotateExtent(self.uAxis, -45, 45)
+        nose1.setRotateExtent(self.vAxis, -45, 45)
+        nose1.setRotateExtent(self.wAxis, -45, 45)
+
+        # nose2 rotation
+        nose2.setRotateExtent(self.uAxis, -45, 45)
+        nose2.setRotateExtent(self.vAxis, -45, 45)
+        nose2.setRotateExtent(self.wAxis, -45, 45)
+
+        # left antenna 1 rotation
+        leftAnt1.setRotateExtent(self.uAxis, -45, 45)
+        leftAnt1.setRotateExtent(self.vAxis, -60, 60)
+        leftAnt1.setRotateExtent(self.wAxis, -30, 30)
+
+        # left antenna 2 rotation
+        leftAnt2.setRotateExtent(self.uAxis, -45, 45)
+        leftAnt2.setRotateExtent(self.vAxis, -60, 60)
+        leftAnt2.setRotateExtent(self.wAxis, -30, 30)
+
+        # right antenna 1 rotation
+        rightAnt1.setRotateExtent(self.uAxis, -45, 45)
+        rightAnt1.setRotateExtent(self.vAxis, -60, 60)
+        rightAnt1.setRotateExtent(self.wAxis, -30, 30)
+
+        # right antenna 2 rotation
+        rightAnt2.setRotateExtent(self.uAxis, -45, 45)
+        rightAnt2.setRotateExtent(self.vAxis, -60, 60)
+        rightAnt2.setRotateExtent(self.wAxis, -30, 30)
+
+        # left leg 1 rotation
+        leftLeg1.setRotateExtent(self.uAxis, -90, 90)
+        leftLeg1.setRotateExtent(self.vAxis, -30, 90)
+        leftLeg1.setRotateExtent(self.wAxis, 0, 90)
+
+        # left leg 2 rotation
+        leftLeg2.setRotateExtent(self.uAxis, -90, 90)
+        leftLeg2.setRotateExtent(self.vAxis, 0, 0)
+        leftLeg2.setRotateExtent(self.wAxis, 0, 0)
+
+        # right leg 1 rotation
+        rightLeg1.setRotateExtent(self.uAxis, -90, 90)
+        rightLeg1.setRotateExtent(self.vAxis, 90, -30)
+        rightLeg1.setRotateExtent(self.wAxis, 90, 0)
+
+        # right leg 2 rotation
+        rightLeg2.setRotateExtent(self.uAxis, -90, 90)
+        rightLeg2.setRotateExtent(self.vAxis, 0, 0)
+        rightLeg2.setRotateExtent(self.wAxis, 0, 0)
+
+        # tail 1 rotation
+        tail1.setRotateExtent(self.uAxis, -70, 70)
+        tail1.setRotateExtent(self.vAxis, -70, 70)
+        tail1.setRotateExtent(self.wAxis, -70, 70)
+
+        # tail 2 rotation
+        tail2.setRotateExtent(self.uAxis, -70, 70)
+        tail2.setRotateExtent(self.vAxis, -70, 70)
+        tail2.setRotateExtent(self.wAxis, -70, 70)
+
+        # tail 3 rotation
+        tail3.setRotateExtent(self.uAxis, -70, 70)
+        tail3.setRotateExtent(self.vAxis, -70, 70)
+        tail3.setRotateExtent(self.wAxis, -70, 70)
+
+        # tail end rotation
+        tailEnd.setRotateExtent(self.uAxis, 0, 0)
+        tailEnd.setRotateExtent(self.vAxis, 0, 0)
+        tailEnd.setRotateExtent(self.wAxis, 0, 0)
+
