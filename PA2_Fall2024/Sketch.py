@@ -15,6 +15,9 @@ import numpy as np
 from ModelAxes import ModelAxes
 from ModelLinkage import ModelLinkage
 
+# import my creature class
+from ModelLinkage import creature
+
 import ColorType
 from Point import Point
 from CanvasBase import CanvasBase
@@ -154,7 +157,7 @@ class Sketch(CanvasBase):
         # and self.components should refer to your model's components.
         # Optionally, you can create a dictionary (self.cDict) to index your model's components by name.
 
-        model = ModelLinkage(self, Point((0, 0, 0)), self.shaderProg)
+        model = creature(self, Point((0, 0, 0)), self.shaderProg)
         axes = ModelAxes(self, Point((-1, -1, -1)), self.shaderProg)
 
         self.topLevelComponent.clear()
