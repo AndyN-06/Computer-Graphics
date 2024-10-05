@@ -7,6 +7,20 @@ First version Created on 09/28/2018
 :version: 2021.1.1
 
 Modified by Daniel Scrivener 07/2022
+
+Modified by Andrew Nguyen U10666001
+- added variable in the Sketch class called selected_components that holds all selected components
+for the multi-select feature. It is then initialized to empty in the __init__ function
+
+- changed keyboard interrupt function
+    - pressing enter/return now doesnt always set axis to 0, which is red for u axis. It also only reset the color
+    of the last selected component if it wasn't selected for multi-select
+    - added a press tab to add the currently selected component to the multi-select list
+    - left/right were changed so they change the color of every component selected instead of just current
+    - 5 poses were added to keys 1-5 for the test cases
+
+- ScrollINterrupt changed so that it can rotate every component multi-selected
+
 """
 
 import math
@@ -112,6 +126,9 @@ class Sketch(CanvasBase):
     select_obj_index = -1 # index of selected component in self.components
     select_axis_index = -1  # index of selected axis
     select_color = [ColorType.ColorType(1, 0, 0), ColorType.ColorType(0, 1, 0), ColorType.ColorType(0, 0, 1)]
+    
+    # list to hold selected components
+    selected_components = []
 
     # If you are having trouble rotating the camera, try increasing this parameter
     # (Windows users with trackpads may need this)
@@ -128,6 +145,9 @@ class Sketch(CanvasBase):
         self.last_mouse_leftPosition = [0, 0]
         self.last_mouse_middlePosition = [0, 0]
         self.backgroundColor = ColorType.BLUEGREEN
+
+        # initialize selected components list
+        self.selected_components = []
 
         # add components to top level
         self.resetView()
@@ -257,6 +277,13 @@ class Sketch(CanvasBase):
         if wheelRotation == 0:
             return
         wheelChange = wheelRotation / abs(wheelRotation)  # normalize wheel change
+
+        # rotate components in selected components together
+        if len(self.selected_components) > 0:
+            for component in self.selected_components:
+                component.rotate(wheelChange * self.MOUSE_SCROLL_SPEED, component.axisBucket[self.select_axis_index])
+
+        # rotate current selected component if its not in list
         if len(self.components) > 0 and self.select_obj_index >= 0:
             self.components[self.select_obj_index].rotate(wheelChange * self.MOUSE_SCROLL_SPEED,
                                                             self.components[self.select_obj_index].
@@ -393,26 +420,59 @@ class Sketch(CanvasBase):
             
         if keycode in [wx.WXK_RETURN]:
             # enter component editing mode
-
-            self.select_axis_index = 0
+            # sets current axis to whatever axis we are currently on, not 0 always
+            self.select_axis_index = self.select_axis_index % 3
 
             if len(self.components) > 0:
-                # reset color of last selected component
-                self.components[self.select_obj_index].reset("color")
+                # reset color of last selected component if it is not in selected_components
+                if self.components[self.select_obj_index] not in self.selected_components:
+                    self.components[self.select_obj_index].reset("color")
+
                 # set new selected component & its color
                 self.select_obj_index = (self.select_obj_index + 1) % len(self.components)
                 self.components[self.select_obj_index].setCurrentColor(self.select_color[self.select_axis_index])
                 
             self.update()
-        if keycode in [wx.WXK_LEFT]:
+        
+        # press tab to add selected component to list of components
+        if keycode in [wx.WXK_TAB]:
+            if self.select_obj_index >= 0:
+                selected = self.components[self.select_obj_index]
+
+                # remove component from list if already there
+                if selected in self.selected_components:
+                    self.selected_components.remove(selected)
+                    selected.reset("color")
+
+                # add component to list
+                else:
+                    self.selected_components.append(selected)
+                    selected.setCurrentColor(self.select_color[self.select_axis_index])
+
+            self.update()
+
+        if keycode in [wx.WXK_LEFT]: 
             # Last rotation axis of this component
             self.select_axis_index = (self.select_axis_index - 1) % 3
+            
+            # update color of every component selected
+            for component in self.selected_components:
+                component.selfCurrentColor(self.select_color[self.select_axis_index])
+            
+            # change color of current selected
             if self.select_obj_index >= 0:
                 self.components[self.select_obj_index].setCurrentColor(self.select_color[self.select_axis_index])
+
             self.update()
         if keycode in [wx.WXK_RIGHT]:
             # Next rotation axis of this component
             self.select_axis_index = (self.select_axis_index + 1) % 3
+
+            # update color of every component selected
+            for component in self.selected_components:
+                component.setCurrentColor(self.select_color[self.select_axis_index])
+
+            # change color of current selected
             if self.select_obj_index >= 0:
                 self.components[self.select_obj_index].setCurrentColor(self.select_color[self.select_axis_index])
             self.update()
@@ -426,6 +486,12 @@ class Sketch(CanvasBase):
             self.update()
         if keycode in [wx.WXK_ESCAPE]:
             # exit component editing mode
+
+            # clear selected components
+            for component in self.selected_components:
+                component.reset("color")
+            self.selected_components.clear()
+
             self.components[self.select_obj_index].reset("color")
             self.select_obj_index = -1
             self.select_axis_index = -1

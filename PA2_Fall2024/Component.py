@@ -6,6 +6,9 @@ First version in 11/01/2021
 :version: 2021.1.1
 
 Modified by Daniel Scrivener 07/2022
+
+Modified by Andrew Nguyen U10666001
+- changed update function where it does correct order of transformations
 """
 import copy
 import math

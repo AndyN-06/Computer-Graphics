@@ -8,6 +8,10 @@ First version on 09/28/2021
 ----------------------------------
 
 Modified by Daniel Scrivener 09/2023
+
+Modified by Andrew Nguyen U10666001
+- added another class called creature that holds my creature
+- 
 """
 
 from Component import Component
@@ -112,6 +116,7 @@ class creature(Component):
         tail2.setDefaultAngle(-30, self.uAxis)
         tail3.setDefaultAngle(-30, self.uAxis)
 
+        # set hierarchy
         self.addChild(body)
         body.addChild(head)
         head.addChild(nose1)
