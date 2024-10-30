@@ -15,6 +15,10 @@ from Point import Point
 import ColorType as Ct
 from EnvironmentObject import EnvironmentObject
 
+# for distance calculations
+from math import sqrt
+import numpy as np
+
 try:
     import OpenGL
 
@@ -116,6 +120,68 @@ class Linkage(Component, EnvironmentObject):
 
         self.update()
 
+        # update bounding sphere based on movements
+        self.boundingSphere()
+
+    # use Ritter's algorithm to find bounding sphere for the creature
+    def boundingSphere(self):
+        
+        # Collect all world positions of components
+        points = [self.getWorldPos(component) for component in self.componentList]
+
+        # find the furthest points for initical bounding sphere
+        max_distance = 0
+        p1, p2 = points[0], points[0]
+
+        # loop through points to find furthest apart
+        for i in range(len(points)):
+            for j in range(i + 1, len(points)):
+                distance = sqrt(
+                    (points[j][0] - points[i][0]) ** 2 +
+                    (points[j][1] - points[i][1]) ** 2 +
+                    (points[j][2] - points[i][2]) ** 2
+                )
+                if distance > max_distance:
+                    max_distance = distance
+                    p1, p2 = points[i], points[j]
+        
+        # set the initial center point and radius based on the furthest points
+        center_x = (p1[0] + p2[0]) / 2
+        center_y = (p1[1] + p2[1]) / 2
+        center_z = (p1[2] + p2[2]) / 2
+        radius = sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2) / 2
+
+        # make sure sphere covers entire creature
+        for point in points:
+            distance = sqrt(
+                (point[0] - center_x) ** 2 +
+                (point[1] - center_y) ** 2 +
+                (point[2] - center_z) ** 2
+            )
+            if distance > radius:
+                # update center and expand based on Ritter's algo
+                radius = (radius + distance) / 2
+                ratio = (distance - radius) / distance
+                center_x += (point.x - center_x) * ratio
+                center_y += (point.y - center_y) * ratio
+                center_z += (point.z - center_z) * ratio
+
+        # set final bounding sphere
+        self.bound_center = Point((center_x, center_y, center_z))
+        self.bound_radius = radius
+
+    # helper function to find world position of each component
+    def getWorldPos(self, component):
+        # get pos in relation to parent
+        # pos = np.array([component.position.x, component.position.y, component.position.z, 1.0])
+        pos = np.array([component.currentPos[0], component.currentPos[1], component.currentPos[2], 1.0])
+
+        # Apply transformations it went through
+        transformed_pos = component.preRotationMat @ component.outRotation @ component.postRotationMat @ pos
+        
+        # return x, y, and z coordinates
+        return Point((transformed_pos[0], transformed_pos[1], transformed_pos[2]))
+
     def stepForward(self, components, tank_dimensions, vivarium):
 
         ##### TODO 3: Interact with the environment
@@ -135,6 +201,8 @@ class Linkage(Component, EnvironmentObject):
 
         pass
 
+
+
 class Predator(Linkage):
 
     components = None
@@ -142,17 +210,14 @@ class Predator(Linkage):
     translation_speed = None
 
     def __init__(self, parent, position, shaderProg, display_obj=None):
-        super().__init__(position, display_obj)
+        # super().__init__(position, display_obj, shaderProg)
+        super(Linkage, self).__init__(position)
         self.contextParent = parent
 
         # Makes each body part following format of above class
         body = Cylinder(Point((0, 0, 0)), shaderProg, [0.15, 0.15, 0.5], Ct.GREENYELLOW)
 
         head = Sphere(Point((0, 0, 1.25 / 2)), shaderProg, [0.25, 0.25, 0.25], Ct.GREENYELLOW)
-
-        nose1 = Cylinder(Point((0, 0.1 / 2, 0.5 / 2)), shaderProg, [0.025, 0.025, 0.1], Ct.PINK)
-        nose2 = Cylinder(Point((0, 0, 0.4 / 2)), shaderProg, [0.025, 0.025, 0.1], Ct.PINK)
-        nose2.setDefaultAngle(30, self.uAxis)
 
         leftEye = Sphere(Point((-0.25 / 2, 0.3 / 2, 0.3 / 2)), shaderProg, [0.015, 0.025, 0.01], Ct.BLACK)
         rightEye = Sphere(Point((0.25 / 2, 0.3 / 2, 0.3 / 2)), shaderProg, [0.015, 0.025, 0.01], Ct.BLACK)
@@ -175,8 +240,8 @@ class Predator(Linkage):
 
         rightLeg1 = Cube(Point((0.2 / 2, -0.2 / 2, 0.25 / 2)), shaderProg, [0.1, 0.1, 0.15], Ct.CYAN)
         rightLeg2 = Cube(Point((0, 0, 0.4 / 2)), shaderProg, [0.1, 0.1, 0.3], Ct.SILVER)
-        rightLeg1.setDefaultAngle(-90, self.uAxis)
-        rightLeg1.setDefaultAngle(180, self.vAxis)
+        rightLeg1.setDefaultAngle(90, self.uAxis)
+        # rightLeg1.setDefaultAngle(180, self.vAxis)
         rightLeg2.setDefaultAngle(-45, self.uAxis)
         # rightLeg1.setDefaultAngle(20, self.wAxis)
 
@@ -192,8 +257,6 @@ class Predator(Linkage):
         # set hierarchy
         self.addChild(body)
         body.addChild(head)
-        head.addChild(nose1)
-        nose1.addChild(nose2)
         head.addChild(leftEye)
         head.addChild(rightEye)
         head.addChild(mouth)
@@ -210,13 +273,11 @@ class Predator(Linkage):
         tail2.addChild(tail3)
         tail3.addChild(tailEnd)
 
-        self.componentList = [body, head, nose1, nose2, leftEye, rightEye, mouth, leftAnt1, leftAnt2, rightAnt1, rightAnt2, leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3, tailEnd]
+        self.componentList = [body, head, leftEye, rightEye, mouth, leftAnt1, leftAnt2, rightAnt1, rightAnt2, leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3, tailEnd]
 
         self.componentDict = {
             "body": body,
             "head": head,
-            "nose1": nose1,
-            "nose2": nose2,
             "leftEye": leftEye,
             "rightEye": rightEye,
             "mouth": mouth,
@@ -235,8 +296,8 @@ class Predator(Linkage):
         }
 
         # main body rotation extents 
-        body.setRotateExtent(self.uAxis, -90, 90)
-        body.setRotateExtent(self.vAxis, -90, 90)
+        body.setRotateExtent(self.uAxis, 0, 0)
+        body.setRotateExtent(self.vAxis, 0, 0)
         body.setRotateExtent(self.wAxis, 0, 0)
 
         # left leg 1 rotation
@@ -250,12 +311,12 @@ class Predator(Linkage):
         leftLeg2.setRotateExtent(self.wAxis, 0, 0)
 
         # right leg 1 rotation
-        rightLeg1.setRotateExtent(self.uAxis, -160, -20)
+        rightLeg1.setRotateExtent(self.uAxis, 20, 160)
         rightLeg1.setRotateExtent(self.vAxis, 0, 0)
         rightLeg1.setRotateExtent(self.wAxis, 0, 0)
 
         # right leg 2 rotation
-        rightLeg2.setRotateExtent(self.uAxis, -90, 0)
+        rightLeg2.setRotateExtent(self.uAxis, 0, 90)
         rightLeg2.setRotateExtent(self.vAxis, 0, 0)
         rightLeg2.setRotateExtent(self.wAxis, 0, 0)
 
@@ -283,23 +344,14 @@ class Predator(Linkage):
         self.components = [leftLeg1, leftLeg2, rightLeg1, rightLeg2, tail1, tail2, tail3]
 
         # set rotation speeds for each component
-        self.rotation_speed = [[1.4, 0, 0], [.9, 0, 0], [1.4, 0, 0], [.9, 0, 0], [0, .5, 0], [0, .5, 0], [0, .5, 0]]
+        self.rotation_speed = [[1.4, 0, 0], [.9, 0, 0], [-1.4, 0, 0], [.9, 0, 0], [0, 1.4, 0], [0, 1.4, 0], [0, 1.4, 0]]
 
+        # call function to set bounding sphere
+        self.boundingSphere()
 
-    # def animationUpdate(self):
-    #     for i, comp in enumerate(self.components):
-    #         comp.rotate(self.rotation_speed[i][0], comp.uAxis)
-    #         comp.rotate(self.rotation_speed[i][1], comp.vAxis)
-    #         comp.rotate(self.rotation_speed[i][2], comp.wAxis)
-    #         if comp.uAngle in comp.uRange:  # rotation reached the limit
-    #             self.rotation_speed[i][0] *= -1
-    #         if comp.vAngle in comp.vRange:
-    #             self.rotation_speed[i][1] *= -1
-    #         if comp.wAngle in comp.wRange:
-    #             self.rotation_speed[i][2] *= -1
-    #     self.vAngle = (self.vAngle + 3) % 360
+        # set speed
+        self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
 
-    #     self.update()
 
 class Prey(Linkage):
 
@@ -308,7 +360,8 @@ class Prey(Linkage):
     translation_speed = None
 
     def __init__(self, parent, position, shaderProg, display_obj=None):
-        super().__init__(position, display_obj)
+        # super().__init__(position, display_obj, shaderProg)
+        super(Linkage, self).__init__(position)
         self.contextParent = parent
 
         head = Sphere(Point((0, 0, 0.2)), shaderProg, [0.133, 0.133, 0.133], Ct.RED)
@@ -340,33 +393,28 @@ class Prey(Linkage):
         }
 
         tail1.setRotateExtent(self.uAxis, -30, 30)
-        tail1.setRotateExtent(self.vAxis, 110, 250)
+        tail1.setRotateExtent(self.vAxis, 150, 210)
         tail1.setRotateExtent(self.wAxis, 0, 0)
 
         tailend.setRotateExtent(self.uAxis, -30, 30)
-        tailend.setRotateExtent(self.vAxis, -70, 70)
+        tailend.setRotateExtent(self.vAxis, -50, 50)
         tailend.setRotateExtent(self.wAxis, 0, 0)
+
+        body.setRotateExtent(self.uAxis, 0, 0)
+        body.setRotateExtent(self.vAxis, 0, 0)
+        body.setRotateExtent(self.wAxis, 0, 0)
 
         # list of moveable components
         self.components = [tail1, tailend]
 
         # set rotation speed for components
-        self.rotation_speed = [[.5, .5, 0], [.5, .5, 0]]
+        self.rotation_speed = [[0, 6, 0], [0, 10, 0]]
 
-    # def animationUpdate(self):
-    #     for i, comp in enumerate(self.components):
-    #         comp.rotate(self.rotation_speed[i][0], comp.uAxis)
-    #         comp.rotate(self.rotation_speed[i][1], comp.vAxis)
-    #         comp.rotate(self.rotation_speed[i][2], comp.wAxis)
-    #         if comp.uAngle in comp.uRange:  # rotation reached the limit
-    #             self.rotation_speed[i][0] *= -1
-    #         if comp.vAngle in comp.vRange:
-    #             self.rotation_speed[i][1] *= -1
-    #         if comp.wAngle in comp.wRange:
-    #             self.rotation_speed[i][2] *= -1
-    #     self.vAngle = (self.vAngle + 3) % 360
+        # call function to set bounding sphere
+        self.boundingSphere()
 
-    #     self.update()
+        # set speed
+        self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
 
 
 class ModelArm(Component):
