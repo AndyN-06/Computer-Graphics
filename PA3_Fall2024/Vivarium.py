@@ -49,8 +49,8 @@ class Vivarium(Component):
         self.components = [tank]
 
         # self.addNewObjInTank(Linkage(parent, Point((0,0,0)), shaderProg))
-        self.addNewObjInTank(Prey(parent, Point((0, 0, 0)), shaderProg))
-        self.addNewObjInTank(Predator(parent, Point((1, 1, 0)), shaderProg))
+        self.addNewObjInTank(Prey(parent, Point((1.5, 0, 0)), shaderProg))
+        # self.addNewObjInTank(Predator(parent, Point((-1.5, 0, 0)), shaderProg))
 
 
     def animationUpdate(self):
