@@ -48,9 +48,10 @@ class Vivarium(Component):
         # Store all components in one list, for us to access them later
         self.components = [tank]
 
-        # self.addNewObjInTank(Linkage(parent, Point((0,0,0)), shaderProg))
-        self.addNewObjInTank(Prey(parent, Point((1.5, 0, 0)), shaderProg))
-        # self.addNewObjInTank(Predator(parent, Point((-1.5, 0, 0)), shaderProg))
+        self.addNewObjInTank(Linkage(parent, Point((0,0,0)), shaderProg))
+        # self.addNewObjInTank(Prey(parent, Point((1.5, 0, 0)), shaderProg))
+        # self.addNewObjInTank(Predator(parent, Point((0, 2.0, 0)), shaderProg))
+        # self.addNewObjInTank(Prey(parent, Point((-1.5, 0, 0)), shaderProg))
 
 
     def animationUpdate(self):
@@ -58,7 +59,7 @@ class Vivarium(Component):
         Update all creatures in vivarium
         """
             
-        for c in self.components[::-1]:
+        for c in self.components[::-1]:  
             if isinstance(c, EnvironmentObject):
                 c.animationUpdate()
                 c.stepForward(self.components, self.tank_dimensions, self)
@@ -79,3 +80,23 @@ class Vivarium(Component):
             # add environment components list reference to this new object's
             newComponent.env_obj_list = self.components
 
+        newComponent.initialize()
+
+    def testScene(self):
+        self.components = [self.tank]
+        self.tank.children = []
+
+        self.addNewObjInTank(Predator(self.parent, Point((1.0, 2.0, 2.0)), self.shaderProg))
+        self.addNewObjInTank(Prey(self.parent, Point((1.5, -1.8, -1.0)), self.shaderProg))
+
+        print(self.components)
+
+    def defaultScene(self):
+        self.components = [self.tank]
+        self.tank.children = []
+
+        self.addNewObjInTank(Prey(self.parent, Point((1.5, 0, 0)), self.shaderProg))
+        self.addNewObjInTank(Predator(self.parent, Point((0, 2.0, 0)), self.shaderProg))
+        self.addNewObjInTank(Prey(self.parent, Point((-1.5, 0, 0)), self.shaderProg))
+
+        print(self.components)

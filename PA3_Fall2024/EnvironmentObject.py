@@ -63,4 +63,33 @@ class EnvironmentObject:
         :param v1: targed facing direction
         :type v1: Point
         """
-        self.setPostRotation(np.identity(4))
+         # Normalize v1 to get the unit vector for the target direction
+        target_dir = v1.normalize()
+
+        # Define the current forward direction as the local positive z-axis
+        current_dir = Point((0, 0, 1))
+
+        # Calculate rotation axis and angle to align z-axis with the target direction
+        rotation_axis = current_dir.cross3d(target_dir)
+        rotation_angle = math.acos(current_dir.dot(target_dir) / (current_dir.norm() * target_dir.norm()))
+
+        # Handle the case where no rotation is needed (already facing target direction)
+        if rotation_axis.norm() < 1e-6:
+            return
+
+        # Normalize rotation axis
+        rotation_axis = rotation_axis.normalize()
+        sin_half_angle = math.sin(rotation_angle / 2)
+        cos_half_angle = math.cos(rotation_angle / 2)
+
+        # Create quaternion components manually
+        rotation_quat = Quaternion(
+            s=cos_half_angle,
+            v0=rotation_axis[0] * sin_half_angle,
+            v1=rotation_axis[1] * sin_half_angle,
+            v2=rotation_axis[2] * sin_half_angle
+        )
+
+        # Convert quaternion to a rotation matrix and set post-rotation
+        rotation_matrix = rotation_quat.toMatrix()
+        self.setPostRotation(rotation_matrix)

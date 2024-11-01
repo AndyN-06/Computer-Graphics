@@ -377,12 +377,18 @@ class Sketch(CanvasBase):
         if chr(keycode) in "rR":
             # reset viewing angle
             self.viewing_quaternion = Quaternion()
+            self.vivarium.defaultScene()
+            self.OnDraw()
+            self.Refresh()
             self.update()
         
         # A test scene with only one (1) predator and one (1) prey
         if chr(keycode) in "tT":
             # reset viewing angle
             self.viewing_quaternion = Quaternion()
+            self.vivarium.testScene()
+            self.OnDraw()
+            self.Refresh()
             self.update()
 
 

@@ -114,7 +114,6 @@ class Linkage(Component, EnvironmentObject):
                 self.rotation_speed[i][1] *= -1
             if comp.wAngle in comp.wRange:
                 self.rotation_speed[i][2] *= -1
-        self.vAngle = (self.vAngle + 3) % 360
 
         ##### BONUS 6: Group behaviors
         # Requirements:
@@ -129,9 +128,13 @@ class Linkage(Component, EnvironmentObject):
 
     # use Ritter's algorithm to find bounding sphere for the creature
     def boundingSphere(self):
+
+        # Start with the creature’s root position (e.g., (1.5, 0, 0))
+        root_position = self.currentPos
         
         # Collect all world positions of components
-        points = [self.getWorldPos(component) for component in self.componentList]
+        points = [self.getWorldPos(component, root_position) for component in self.componentList]
+        # print(points)
 
         # find the furthest points for initical bounding sphere
         max_distance = 0
@@ -175,16 +178,16 @@ class Linkage(Component, EnvironmentObject):
         self.bound_radius = radius
 
     # helper function to find world position of each component
-    def getWorldPos(self, component):
-        # get pos in relation to parent
-        # pos = np.array([component.position.x, component.position.y, component.position.z, 1.0])
-        pos = np.array([component.currentPos[0], component.currentPos[1], component.currentPos[2], 1.0])
+    def getWorldPos(self, component, root_position):
+        # Start with the root position of the creature (e.g., its vivarium position)
+        world_position = np.array([root_position[0], root_position[1], root_position[2]])
 
-        # Apply transformations it went through
-        transformed_pos = component.preRotationMat @ component.outRotation @ component.postRotationMat @ pos
-        
-        # return x, y, and z coordinates
-        return Point((transformed_pos[0], transformed_pos[1], transformed_pos[2]))
+        # Accumulate position with the component’s currentPos
+        component_position = np.array([component.currentPos[0], component.currentPos[1], component.currentPos[2]])
+        world_position += component_position
+
+        # Return the world position as a Point
+        return Point((world_position[0], world_position[1], world_position[2]))
     
 
     def stepForward(self, components, tank_dimensions, vivarium):
@@ -210,12 +213,12 @@ class Linkage(Component, EnvironmentObject):
 
         # print("spd: ", end =" ")
         # print(self.translation_speed)
-        print("pos: ", end =" ")
-        print(self.currentPos)
-        print("center: ", end =" ")
-        print(self.bound_center)
-        print("rad: ", end =" ")
-        print(self.bound_radius)
+        # print("pos: ", end =" ")
+        # print(self.currentPos)
+        # print("center: ", end =" ")
+        # print(self.bound_center)
+        # print("rad: ", end =" ")
+        # print(self.bound_radius)
 
         # Retrieve tank boundaries
         length, width, height = tank_dimensions
@@ -237,20 +240,56 @@ class Linkage(Component, EnvironmentObject):
         if self.bound_center[2] - self.bound_radius < z_min or self.bound_center[2] + self.bound_radius > z_max:
             self.translation_speed = Point((x_spd, y_spd, z_spd * -1))  # Reverse Z direction
 
-        for creature in vivarium.components[1:]:
+        # Initialize closest distance for predator tracking
+        closest_prey = None
+        min_distance = float('inf')
+
+        for creature in vivarium.components[1:]:  # Skip the tank
             if creature is self:
                 continue  # Skip self
 
-            # Check for collision with another creature
+            # Check for collision
             if self.creature_collide(self, creature):
                 if self.species_id == 1 and creature.species_id == 2:
                     # Predator-prey collision: predator eats prey
                     vivarium.delObjInTank(creature)
+                    continue  # Skip further processing for this creature
 
                 elif self.species_id == creature.species_id:
                     # Same-species collision: reflect direction to simulate bounce
                     self.translation_speed = Point((-self.translation_speed[0], -self.translation_speed[1], -self.translation_speed[2]))
+                    continue
 
+            # Predator logic: find the closest prey to move toward
+            if self.species_id == 1 and creature.species_id == 2:
+                distance = self.calc_distance(self.bound_center, creature.bound_center)
+                if distance < min_distance:
+                    closest_prey = creature
+                    min_distance = distance
+
+            # Prey logic: avoid predator if heading toward it
+            elif self.species_id == 2 and creature.species_id == 1:
+                distance = self.calc_distance(self.bound_center, creature.bound_center)
+                if distance < self.bound_radius + creature.bound_radius:
+                    # Check if the current direction is toward the predator
+                    direction_to_predator = (creature.bound_center - self.bound_center).normalize()
+                    current_direction = self.translation_speed.normalize()
+
+                    # Adjust direction if heading toward predator
+                    if np.dot(current_direction, direction_to_predator) > 0:
+                        # Reflect translation speed to steer away
+                        self.translation_speed = Point((-self.translation_speed[0], -self.translation_speed[1], -self.translation_speed[2]))
+
+        # Update predator's direction toward the closest prey
+        if self.species_id == 1 and closest_prey:
+            # Calculate the magnitude of the current speed
+            speed_magnitude = np.sqrt(self.translation_speed[0]**2 + self.translation_speed[1]**2 + self.translation_speed[2]**2)
+            
+            # Set direction to move toward the closest prey while keeping the same speed
+            direction_to_prey = (closest_prey.bound_center - self.bound_center).normalize()
+            self.translation_speed = direction_to_prey * speed_magnitude
+
+        self.rotateDirection(self.translation_speed)
         self.update()
 
     # helper method to get the Euc distance between 2 points
@@ -278,35 +317,36 @@ class Predator(Linkage):
         # Makes each body part following format of above class
         body = Cylinder(Point((0, 0, 0)), shaderProg, [0.075, 0.075, 0.250], Ct.GREENYELLOW)
 
-        head = Sphere(Point((0, 0, 0.625)), shaderProg, [0.125, 0.125, 0.125], Ct.GREENYELLOW)
+        head = Sphere(Point((0, 0, 0.15625)), shaderProg, [0.125, 0.125, 0.125], Ct.GREENYELLOW)
 
-        leftEye = Sphere(Point((-0.250, 0.300, 0.300)), shaderProg, [0.008, 0.013, 0.005], Ct.BLACK)
-        rightEye = Sphere(Point((0.250, 0.300, 0.300)), shaderProg, [0.008, 0.013, 0.005], Ct.BLACK)
-        mouth = Cylinder(Point((0, -0.150, 0.450)), shaderProg, [0.025, 0.025, 0.013], Ct.BLACK)
+        leftEye = Sphere(Point((-0.0625, 0.075, 0.075)), shaderProg, [0.008, 0.013, 0.005], Ct.BLACK)
+        rightEye = Sphere(Point((0.0625, 0.075, 0.075)), shaderProg, [0.008, 0.013, 0.005], Ct.BLACK)
+        mouth = Cylinder(Point((0, -0.0375, 0.1125)), shaderProg, [0.025, 0.025, 0.013], Ct.BLACK)
         mouth.setDefaultAngle(30, self.uAxis)
 
-        leftAnt1 = Cube(Point((-0.200, 0.350, 0.100)), shaderProg, [0.013, 0.013, 0.075], Ct.BLACK)
-        leftAnt2 = Cube(Point((0, 0, 0.300)), shaderProg, [0.013, 0.013, 0.075], Ct.PURPLE)
+        leftAnt1 = Cube(Point((-0.05, 0.0875, 0.025)), shaderProg, [0.013, 0.013, 0.075], Ct.BLACK)
+        leftAnt2 = Cube(Point((0, 0, 0.075)), shaderProg, [0.013, 0.013, 0.075], Ct.PURPLE)
         leftAnt1.setDefaultAngle(-70, self.uAxis)
 
-        rightAnt1 = Cube(Point((0.200, 0.350, 0.100)), shaderProg, [0.013, 0.013, 0.075], Ct.BLACK)
-        rightAnt2 = Cube(Point((0, 0, 0.300)), shaderProg, [0.013, 0.013, 0.075], Ct.PURPLE)
+        rightAnt1 = Cube(Point((0.05, 0.0875, 0.025)), shaderProg, [0.013, 0.013, 0.075], Ct.BLACK)
+        rightAnt2 = Cube(Point((0, 0, 0.075)), shaderProg, [0.013, 0.013, 0.075], Ct.PURPLE)
         rightAnt1.setDefaultAngle(-70, self.uAxis)
 
-        leftLeg1 = Cube(Point((-0.200, -0.200, 0.250)), shaderProg, [0.050, 0.050, 0.075], Ct.CYAN)
-        leftLeg2 = Cube(Point((0, 0, 0.400)), shaderProg, [0.050, 0.050, 0.150], Ct.SILVER)
+        leftLeg1 = Cube(Point((-0.05, -0.05, 0.0625)), shaderProg, [0.05, 0.05, 0.075], Ct.CYAN)
+        leftLeg2 = Cube(Point((0, 0, 0.1)), shaderProg, [0.05, 0.05, 0.15], Ct.SILVER)
         leftLeg1.setDefaultAngle(90, self.uAxis)
         leftLeg2.setDefaultAngle(45, self.uAxis)
 
-        rightLeg1 = Cube(Point((0.200, -0.200, 0.250)), shaderProg, [0.050, 0.050, 0.075], Ct.CYAN)
-        rightLeg2 = Cube(Point((0, 0, 0.400)), shaderProg, [0.050, 0.050, 0.150], Ct.SILVER)
+        rightLeg1 = Cube(Point((0.05, -0.05, 0.0625)), shaderProg, [0.05, 0.05, 0.075], Ct.CYAN)
+        rightLeg2 = Cube(Point((0, 0, 0.1)), shaderProg, [0.05, 0.05, 0.15], Ct.SILVER)
         rightLeg1.setDefaultAngle(90, self.uAxis)
         rightLeg2.setDefaultAngle(-45, self.uAxis)
 
-        tail1 = Cylinder(Point((0, 0, -0.660)), shaderProg, [0.075, 0.075, 0.075], Ct.DARKORANGE1)
-        tail2 = Cylinder(Point((0, 0, 0.500)), shaderProg, [0.050, 0.050, 0.075], Ct.DARKORANGE2)
-        tail3 = Cylinder(Point((0, 0, 0.500)), shaderProg, [0.025, 0.025, 0.075], Ct.DARKORANGE3)
-        tailEnd = Cone(Point((0, 0, 0.400)), shaderProg, [0.025, 0.025, 0.025], Ct.DARKORANGE4)
+        tail1 = Cylinder(Point((0, 0, -0.165)), shaderProg, [0.075, 0.075, 0.075], Ct.DARKORANGE1)
+        tail2 = Cylinder(Point((0, 0, 0.125)), shaderProg, [0.05, 0.05, 0.075], Ct.DARKORANGE2)
+        tail3 = Cylinder(Point((0, 0, 0.125)), shaderProg, [0.025, 0.025, 0.075], Ct.DARKORANGE3)
+        tailEnd = Cone(Point((0, 0, 0.1)), shaderProg, [0.025, 0.025, 0.025], Ct.DARKORANGE4)
+
         tail1.setDefaultAngle(180, self.vAxis)
         tail1.setDefaultAngle(-30, self.uAxis)
         tail2.setDefaultAngle(-30, self.uAxis)
@@ -409,8 +449,8 @@ class Predator(Linkage):
         self.boundingSphere()
 
         # set speed
-        # self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
-        self.translation_speed = Point((.02, 0, 0))
+        self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
+        # self.translation_speed = Point((.01, 0, 0))
 
         # set species id
         self.species_id = 1
@@ -478,8 +518,8 @@ class Prey(Linkage):
         self.boundingSphere()
 
         # set speed
-        # self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
-        self.translation_speed = Point((-.02, 0, 0))
+        self.translation_speed = Point([random.random()-0.5 for _ in range(3)]).normalize() * 0.01
+        # self.translation_speed = Point((-.01, 0, 0))
 
         # set species id
         self.species_id = 2
