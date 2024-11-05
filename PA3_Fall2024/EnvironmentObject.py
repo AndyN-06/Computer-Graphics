@@ -6,6 +6,9 @@ Created on Nov 1, 2018
 :version: 2021.1.1
 
 modified by Daniel Scrivener 08/2022
+
+modified by Andrew Nguyen U10666001:
+the rotateDirection function was changed in order for the creature's positive z axis face the direction it is going.
 '''
 
 import math

@@ -6,6 +6,9 @@ Created on 20181028
 :version: 2021.1.1
 
 modified by Daniel Scrivener
+
+modified by Andrew Nguyen U10666001:
+New methods were made for the scene with one predator and 2 prey and the test scen with 1 of each
 """
 
 import numpy as np

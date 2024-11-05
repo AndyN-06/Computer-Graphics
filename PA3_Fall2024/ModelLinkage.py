@@ -6,6 +6,12 @@ First version at 09/28/2021
 :version: 2021.2.1
 
 Modified by Daniel Scrivener 08/2022
+
+Modified by Andrew Nguyen U10666001:
+I created two classes here for the predator and prey that are children of the Linkage class. They inherit all of the functions from the linkage class besides the 
+initialization. I did not change the animationUpdate very much besides getting rid of the constant rotation of the creature itself. I used bounding sphere for the
+collision detection using Ritter's algorithm. I added helper functions for the collision detection. the stepforward function moves the creatures based on speed, does collision
+detection between sphere and walls and handles behavior of creatures in relation to other creatures.
 """
 import random
 
@@ -115,6 +121,8 @@ class Linkage(Component, EnvironmentObject):
             if comp.wAngle in comp.wRange:
                 self.rotation_speed[i][2] *= -1
 
+        # I got rid of the rotation here
+
         ##### BONUS 6: Group behaviors
         # Requirements:
         #   1. Add at least 5 creatures to the vivarium and make it possible for creatures to engage in group behaviors,
@@ -179,11 +187,13 @@ class Linkage(Component, EnvironmentObject):
 
     # helper function to find world position of each component
     def getWorldPos(self, component, root_position):
-        # Start with the root position of the creature (e.g., its vivarium position)
+        # position of creature
         world_position = np.array([root_position[0], root_position[1], root_position[2]])
 
-        # Accumulate position with the component’s currentPos
+        # relative position of components
         component_position = np.array([component.currentPos[0], component.currentPos[1], component.currentPos[2]])
+
+        # world position of components
         world_position += component_position
 
         # Return the world position as a Point
@@ -301,7 +311,6 @@ class Linkage(Component, EnvironmentObject):
         distance = self.calc_distance(creature1.bound_center, creature2.bound_center)
         return distance < (creature1.bound_radius + creature2.bound_radius)
     
-
 
 class Predator(Linkage):
 

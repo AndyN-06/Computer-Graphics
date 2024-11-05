@@ -8,6 +8,9 @@ First version Created on 09/28/2018
 
 Modified by Daniel Scrivener 07/2022
 Modified by Ruichen (Richard) Liu 10/2024
+
+modified by Andrew Nguyen U10666001:
+The keyboard interrupts were changed to call the test scene and original scene
 """
 
 import os
