@@ -92,7 +92,7 @@ class Vivarium(Component):
         self.addNewObjInTank(Predator(self.parent, Point((1.0, 2.0, 2.0)), self.shaderProg))
         self.addNewObjInTank(Prey(self.parent, Point((1.5, -1.8, -1.0)), self.shaderProg))
 
-        print(self.components)
+        # print(self.components)
 
     def defaultScene(self):
         self.components = [self.tank]
@@ -102,4 +102,4 @@ class Vivarium(Component):
         self.addNewObjInTank(Predator(self.parent, Point((0, 2.0, 0)), self.shaderProg))
         self.addNewObjInTank(Prey(self.parent, Point((-1.5, 0, 0)), self.shaderProg))
 
-        print(self.components)
+        # print(self.components)
